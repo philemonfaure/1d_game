@@ -1,7 +1,8 @@
+use std::f32::consts::PI;
 use glium::{glutin, Surface, uniform};
 use std::fs::read_to_string;
 use std::path::Path;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 #[derive(Copy, Clone)]
 struct Vertex {
@@ -31,30 +32,89 @@ fn main() {
 
     let index_buffer = glium::IndexBuffer::new(&display, glium::index::PrimitiveType::TriangleStrip, &[0u16, 1, 2, 3]).unwrap();
 
+    let mut camera_position: [f32; 2] = [0.0, -2.0];
+    let mut camera_orientation: f32 = 0.0;
+    let mouse_sensitivity: f32 = 0.005;
+    let mut move_forward = false;
+    let mut move_backward = false;
+    let speed = 0.01;
+
+    let target_fps: u32 = 60;
+    let frame_duration = Duration::from_secs_f32(1.0 / target_fps as f32);
+
     let start_time = Instant::now();
+    let mut last_frame_time = Instant::now();
+
+    display.gl_window().window().set_cursor_visible(false);
+    display.gl_window().window().set_cursor_grab(true).expect("Failed to grab cursor");
 
     event_loop.run(move |event, _, control_flow| {
 
-        let elapsed = start_time.elapsed();
-        let elapsed_seconds = elapsed.as_secs_f32();
+        let now = Instant::now();
+        let elapsed = now - last_frame_time;
 
-        let (width, height) = display.get_framebuffer_dimensions();
+        if elapsed >= frame_duration {
+            last_frame_time = now;
 
-        let mut target = display.draw();
-        target.clear_color(0.0, 0.0, 0.0, 1.0);
-        target.draw(&vertex_buffer, &index_buffer, &program, &uniform! {
-            time: elapsed_seconds,
+            let (width, height) = display.get_framebuffer_dimensions();
+
+            let mut target = display.draw();
+            target.clear_color(0.0, 0.0, 0.0, 1.0);
+            target.draw(&vertex_buffer, &index_buffer, &program, &uniform! {
+            time: start_time.elapsed().as_secs_f32(),
             resolution: [width as f32, height as f32],
-            camera_position: [ 0.0f32 , 0.0f32, -2.0f32]
+            camera_position: camera_position,
+            camera_orientation: camera_orientation
         }, &Default::default()).unwrap();
-        target.finish().unwrap();
+            target.finish().unwrap();
+        }
+
+        *control_flow = glutin::event_loop::ControlFlow::WaitUntil(last_frame_time + frame_duration);
 
         match event {
             glutin::event::Event::WindowEvent { event, .. } => match event {
                 glutin::event::WindowEvent::CloseRequested => *control_flow = glutin::event_loop::ControlFlow::Exit,
+                glutin::event::WindowEvent::CursorMoved { position, .. } => {
+                    let x = position.x as f32;
+                    let (width, height) = display.get_framebuffer_dimensions();
+                    let (center_x, center_y) = (width as f32 / 2.0, height as f32 / 2.0);
+
+                    let x_offset = x - center_x;
+
+                    camera_orientation += x_offset * mouse_sensitivity;
+
+                    display.gl_window().window().set_cursor_position(glutin::dpi::PhysicalPosition::new(center_x as f64, center_y as f64)).expect("Failed to set cursor position");
+                },
+                glutin::event::WindowEvent::KeyboardInput { input, .. } => {
+                    if let Some(glutin::event::VirtualKeyCode::Z) = input.virtual_keycode {
+                        if input.state == glutin::event::ElementState::Pressed {
+                            move_forward = true;
+                        } else if input.state == glutin::event::ElementState::Released {
+                            move_forward = false;
+                        }
+                    }
+                    else if let Some(glutin::event::VirtualKeyCode::S) = input.virtual_keycode {
+                        if input.state == glutin::event::ElementState::Pressed {
+                            move_backward = true;
+                        } else if input.state == glutin::event::ElementState::Released {
+                            move_backward = false;
+                        }
+                    }
+                },
                 _ => (),
             },
             _ => (),
+        }
+
+        if move_forward == true
+        {
+            camera_position[0] += speed * (camera_orientation+PI/2.0).cos();
+            camera_position[1] += speed * (camera_orientation+PI/2.0).sin();
+        }
+        if move_backward == true
+        {
+            camera_position[0] -= speed * (camera_orientation+PI/2.0).cos();
+            camera_position[1] -= speed * (camera_orientation+PI/2.0).sin();
         }
     });
 }

@@ -20,6 +20,18 @@ float map_the_world(in vec2 point)
     return min_dist;
 }
 
+vec2 calculate_normal(in vec2 p)
+{
+    const vec2 small_step = vec2(0.001, 0.0);
+
+    float gradient_x = map_the_world(p + small_step.xy) - map_the_world(p - small_step.xy);
+    float gradient_y = map_the_world(p + small_step.yx) - map_the_world(p - small_step.yx);
+
+    vec2 normal = vec2(gradient_x, gradient_y);
+
+    return normalize(normal);
+}
+
 vec3 ray_march(in vec2 ray_origine, in vec2 ray_direction)
 {
     float total_distance_traveled = 0.0;
@@ -27,6 +39,7 @@ vec3 ray_march(in vec2 ray_origine, in vec2 ray_direction)
     const float MINIMUM_HIT_DISTANCE = 0.001;
     const float MAXIMUM_TRACE_DISTANCE = 1000.0;
     const vec3 bg_color = vec3(0.0, 0.0, 0.0);
+    const vec3 fg_color = vec3(1.0, 0.8, 0.8);
 
     for (int i = 0; i < NUMBER_OF_STEPS; ++i)
     {
@@ -36,7 +49,15 @@ vec3 ray_march(in vec2 ray_origine, in vec2 ray_direction)
 
         if (distance_to_closest < MINIMUM_HIT_DISTANCE)
         {
-            return vec3(1.0, 1.0, 1.0) * (0.2/total_distance_traveled);
+            vec2 normal = calculate_normal(current_position);
+
+            vec2 light_position = vec2(2.0, 3.0);
+
+            vec2 direction_to_light = normalize(current_position - light_position);
+
+            float diffuse_intensity = max(0.5, dot(normal, direction_to_light));
+
+            return fg_color * diffuse_intensity * (0.2/total_distance_traveled);
         }
 
         if (total_distance_traveled > MAXIMUM_TRACE_DISTANCE)

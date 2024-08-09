@@ -35,8 +35,7 @@ fn main() {
     let mut camera_position: [f32; 2] = [0.0, -2.0];
     let mut camera_orientation: f32 = 0.0;
     let mouse_sensitivity: f32 = 0.005;
-    let mut move_forward = false;
-    let mut move_backward = false;
+    let mut movement = [false, false, false, false];
     let speed = 0.01;
 
     let target_fps: u32 = 60;
@@ -88,16 +87,30 @@ fn main() {
                 glutin::event::WindowEvent::KeyboardInput { input, .. } => {
                     if let Some(glutin::event::VirtualKeyCode::Z) = input.virtual_keycode {
                         if input.state == glutin::event::ElementState::Pressed {
-                            move_forward = true;
+                            movement[0] = true;
                         } else if input.state == glutin::event::ElementState::Released {
-                            move_forward = false;
+                            movement[0] = false;
                         }
                     }
                     else if let Some(glutin::event::VirtualKeyCode::S) = input.virtual_keycode {
                         if input.state == glutin::event::ElementState::Pressed {
-                            move_backward = true;
+                            movement[1] = true;
                         } else if input.state == glutin::event::ElementState::Released {
-                            move_backward = false;
+                            movement[1] = false;
+                        }
+                    }
+                    else if let Some(glutin::event::VirtualKeyCode::Q) = input.virtual_keycode {
+                        if input.state == glutin::event::ElementState::Pressed {
+                            movement[2] = true;
+                        } else if input.state == glutin::event::ElementState::Released {
+                            movement[2] = false;
+                        }
+                    }
+                    else if let Some(glutin::event::VirtualKeyCode::D) = input.virtual_keycode {
+                        if input.state == glutin::event::ElementState::Pressed {
+                            movement[3] = true;
+                        } else if input.state == glutin::event::ElementState::Released {
+                            movement[3] = false;
                         }
                     }
                 },
@@ -106,15 +119,25 @@ fn main() {
             _ => (),
         }
 
-        if move_forward == true
+        if movement[0] == true
         {
             camera_position[0] += speed * (camera_orientation+PI/2.0).cos();
             camera_position[1] += speed * (camera_orientation+PI/2.0).sin();
         }
-        if move_backward == true
+        if movement[1] == true
         {
             camera_position[0] -= speed * (camera_orientation+PI/2.0).cos();
             camera_position[1] -= speed * (camera_orientation+PI/2.0).sin();
+        }
+        if movement[2] == true
+        {
+            camera_position[0] -= speed * (camera_orientation).cos();
+            camera_position[1] -= speed * (camera_orientation).sin();
+        }
+        if movement[3] == true
+        {
+            camera_position[0] += speed * (camera_orientation).cos();
+            camera_position[1] += speed * (camera_orientation).sin();
         }
     });
 }
